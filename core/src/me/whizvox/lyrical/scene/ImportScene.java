@@ -28,6 +28,9 @@ public class ImportScene extends ApplicationAdapter {
   private TextBox noEntriesTb;
   private int selected;
 
+  private float ePad;
+  private float lHeight;
+
   public ImportScene(GraphicsManager gm) {
     this.gm = gm;
     imports = new ArrayList<>();
@@ -40,22 +43,24 @@ public class ImportScene extends ApplicationAdapter {
     FileHandle[] importHandles = Reference.Files.IMPORT_DIR.list();
     for (FileHandle importHandle : importHandles) {
       final String name = importHandle.name();
-      imports.add(name);
       importsTbs.add(TextBox.create(gm.getFont(Lyrical.FONT_UI), name, new Rectangle(
-          5, Lyrical.HEIGHT - imports.size() * 25, Lyrical.WIDTH - 10, 25
+          ePad, gm.getHeight() - imports.size() * (lHeight + ePad) - lHeight, gm.getWidth() - (ePad * 2), lHeight
       ), TextAlign.LEFT.value, Color.WHITE, false, "..."));
+      imports.add(name);
     }
     noEntriesTb = TextBox.create(
         gm.getFont(Lyrical.FONT_UI),
         "Nothing to import!\nPut your music in the [WHITE]/import[] folder and press [GRAY][[F5][] to refresh.",
         new Rectangle(
-            0, 0, Lyrical.WIDTH, Lyrical.HEIGHT
+            0, 0, gm.getWidth(), gm.getHeight()
         ), TextAlign.CENTER.value, Color.CORAL, true, null);
     selected = 0;
   }
 
   @Override
   public void create() {
+    ePad = gm.getWidth() / 120f;
+    lHeight = gm.getFont(Lyrical.FONT_UI).getLineHeight();
     refresh();
   }
 
@@ -96,7 +101,12 @@ public class ImportScene extends ApplicationAdapter {
           ShapeRenderer sr = gm.getShapeRenderer();
           sr.setColor(Color.BLUE);
           sr.begin(ShapeRenderer.ShapeType.Filled);
-          sr.rect(tb.textPosition.x - 5, tb.textPosition.y - 5, tb.glyphLayout.width + 10, tb.glyphLayout.height + 10);
+          sr.rect(
+              tb.textPosition.x - ePad,
+              tb.textPosition.y - ePad,
+              tb.glyphLayout.width + (ePad * 2),
+              tb.glyphLayout.height + (ePad * 2)
+          );
           sr.end();
           sb.begin();
         }

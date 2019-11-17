@@ -38,6 +38,10 @@ public class SongSelectionScene extends ApplicationAdapter {
   private int playPreviewMusic;
 
   private TextBox noSongsTb;
+  
+  private float textboxHeight;
+  private float ePad;
+  private final float listSize;
 
   public SongSelectionScene(GraphicsManager gm, SongsRepository repo) {
     this.gm = gm;
@@ -48,6 +52,8 @@ public class SongSelectionScene extends ApplicationAdapter {
     previewMusic = null;
     playPreviewMusic = 0;
     selectedSong = 0;
+
+    listSize = 0.7f;
   }
 
   private void refresh() {
@@ -61,10 +67,10 @@ public class SongSelectionScene extends ApplicationAdapter {
           gm.getFont(Lyrical.FONT_DISPLAY),
           c.title,
           new Rectangle(
-              5,
-              Lyrical.HEIGHT - (i+1) * TEXTBOX_HEIGHT,
-              (float)Lyrical.WIDTH * 0.7f - 10,
-              TEXTBOX_HEIGHT
+              ePad,
+              gm.getHeight() - (i + 1) * textboxHeight,
+              (float)gm.getWidth() * listSize - (ePad * 2),
+              textboxHeight
           ),
           TextAlign.LEFT.value,
           c.length == 0 ? Color.RED : Color.WHITE,
@@ -89,7 +95,7 @@ public class SongSelectionScene extends ApplicationAdapter {
       previewSongTb = TextBox.create(
           gm.getFont(Lyrical.FONT_UI),
           data,
-          new Rectangle((float)Lyrical.WIDTH * 0.7f + 5, 5, (float)Lyrical.WIDTH * 0.3f - 10, Lyrical.HEIGHT - 10),
+          new Rectangle((float)gm.getWidth() * listSize + ePad, ePad, (float)gm.getWidth() * (1 - listSize) - (ePad * 2), gm.getHeight() - (ePad * 2)),
           TextAlign.TOP_LEFT.value,
           Color.WHITE,
           true,
@@ -106,9 +112,11 @@ public class SongSelectionScene extends ApplicationAdapter {
 
   @Override
   public void create() {
+    textboxHeight = gm.getHeight() / 15f;
+    ePad = gm.getWidth() / 120f;
     refresh();
     noSongsTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), "No songs found!\nCheck the [WHITE]/songs[] folder and press [GRAY][[F5][] to refresh.", new Rectangle(
-        0, 0, Lyrical.WIDTH, Lyrical.HEIGHT
+        0, 0, gm.getWidth(), gm.getHeight()
     ), TextAlign.CENTER.value, Color.CORAL, false, null);
   }
 
@@ -138,7 +146,8 @@ public class SongSelectionScene extends ApplicationAdapter {
         try {
           previewMusic = Gdx.audio.newMusic(songFilePath);
           previewMusic.play();
-          previewMusic.setPosition((float) c.previewTimestamp / 1000);
+          // TODO: Skipping in preview music causes a lot of lag
+          //previewMusic.setPosition((float) c.previewTimestamp / 1000);
         } catch (Exception e) {
           System.err.println("Could not load and/or play the following file <" + songFilePath.path() + ">");
           e.printStackTrace();
@@ -167,16 +176,21 @@ public class SongSelectionScene extends ApplicationAdapter {
         return;
       }
 
-      float yoff = selectedSong * TEXTBOX_HEIGHT - Lyrical.HEIGHT / 2f;
+      float yoff = selectedSong * textboxHeight - gm.getHeight() / 2f;
       batch.begin();
       for (int i = 0; i < songsTbs.length; i++) {
         TextBox tb = songsTbs[i];
-        if (tb.textPosition.y + yoff <= Lyrical.HEIGHT + TEXTBOX_HEIGHT && tb.textPosition.y + yoff >= -TEXTBOX_HEIGHT) {
+        if (tb.textPosition.y + yoff <= gm.getHeight() + textboxHeight && tb.textPosition.y + yoff >= -textboxHeight) {
           if (i == selectedSong) {
             batch.end();
             srenderer.setColor(Color.BLUE);
             srenderer.begin(ShapeRenderer.ShapeType.Filled);
-            srenderer.rect(tb.textPosition.x - 5, tb.textPosition.y - 5 + yoff, tb.glyphLayout.width + 10, tb.glyphLayout.height + 10);
+            srenderer.rect(
+                tb.textPosition.x - ePad,
+                tb.textPosition.y - ePad + yoff,
+                tb.glyphLayout.width + (ePad * 2),
+                tb.glyphLayout.height + (ePad * 2)
+            );
             srenderer.end();
             batch.begin();
           }
@@ -199,8 +213,5 @@ public class SongSelectionScene extends ApplicationAdapter {
       previewMusic.dispose();
     }
   }
-
-  public static final float
-      TEXTBOX_HEIGHT = Lyrical.HEIGHT / 15f;
 
 }

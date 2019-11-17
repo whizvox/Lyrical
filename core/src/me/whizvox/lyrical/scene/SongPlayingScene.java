@@ -32,15 +32,20 @@ public class SongPlayingScene extends ApplicationAdapter {
   private float nextLineDelta;
   private int lastIndex;
 
+  private float ePad;
+  private float lSpace;
+
   public SongPlayingScene(GraphicsManager gm) {
     this.gm = gm;
   }
 
   @Override
   public void create() {
+    ePad = gm.getWidth() / 120f;
+    lSpace = gm.getWidth() / 32f;
     Path songPath = Paths.get((String)Lyrical.getInstance().getTransitionData(), "song.ini");
 
-    finishedTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), "Playback has finished. Press [GRAY][[ESC][] to go back.", new Rectangle(0, 10, Lyrical.WIDTH, Lyrical.HEIGHT - 20), TextAlign.BOTTOM_CENTER.value, Color.YELLOW, false, null);
+    finishedTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), "Playback has finished. Press [GRAY][[ESC][] to go back.", new Rectangle(0, 10, gm.getWidth(), gm.getHeight() - 20), TextAlign.BOTTOM_CENTER.value, Color.YELLOW, false, null);
 
     try {
       song = Song.readSong(songPath);
@@ -52,7 +57,7 @@ public class SongPlayingScene extends ApplicationAdapter {
       lineTbs = new TextBox[song.lines.size()];
       for (int i = 0; i < lineTbs.length; i++) {
         lineTbs[i] = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), song.lines.get(i).text, new Rectangle(
-            0, 0, Lyrical.WIDTH, Lyrical.HEIGHT
+            0, 0, gm.getWidth(), gm.getHeight()
         ), TextAlign.CENTER.value, Color.WHITE, true, null);
       }
       if (!song.metadata.background.isEmpty()) {
@@ -69,14 +74,14 @@ public class SongPlayingScene extends ApplicationAdapter {
 
     if (background != null) {
       float ar = (float) background.getWidth() / background.getHeight();
-      float uAr = (float) Lyrical.WIDTH / Lyrical.HEIGHT;
-      bgRegion = new Rectangle(0, 0, Lyrical.WIDTH, Lyrical.HEIGHT);
+      float uAr = (float) gm.getWidth() / gm.getHeight();
+      bgRegion = new Rectangle(0, 0, gm.getWidth(), gm.getHeight());
       if (ar > uAr) {
-        bgRegion.setY((Lyrical.HEIGHT - (uAr / ar) * Lyrical.HEIGHT) * 0.5f);
-        bgRegion.setHeight((uAr / ar) * Lyrical.HEIGHT);
+        bgRegion.setY((gm.getHeight() - (uAr / ar) * gm.getHeight()) * 0.5f);
+        bgRegion.setHeight((uAr / ar) * gm.getHeight());
       } else {
-        bgRegion.setX((Lyrical.WIDTH - (ar / uAr) * Lyrical.WIDTH) * 0.5f);
-        bgRegion.setWidth((ar / uAr) * Lyrical.WIDTH);
+        bgRegion.setX((gm.getWidth() - (ar / uAr) * gm.getWidth()) * 0.5f);
+        bgRegion.setWidth((ar / uAr) * gm.getWidth());
       }
     }
 
@@ -120,19 +125,20 @@ public class SongPlayingScene extends ApplicationAdapter {
         Gdx.gl.glBlendFunc(Gdx.gl.GL_SRC_ALPHA, Gdx.gl.GL_ONE_MINUS_SRC_ALPHA);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.2f, 0.2f, 0.2f, 0.5f);
-        sr.rect(5, tb.textPosition.y + 20, Lyrical.WIDTH - 10, tb.glyphLayout.height + 10);
+        // TODO: Should have the yoffset be another constant?
+        sr.rect(ePad, tb.textPosition.y + lSpace - ePad, gm.getWidth() - (ePad * 2), tb.glyphLayout.height + (ePad * 2));
         sr.end();
         if (song.getProgress() != 0) {
           sr.begin(ShapeRenderer.ShapeType.Filled);
           sr.setColor(Color.PURPLE);
-          sr.rect(tb.textPosition.x - 5, tb.textPosition.y + 20, tb.glyphLayout.width * song.getProgress() + 10, tb.glyphLayout.height + 10);
+          sr.rect(tb.textPosition.x - ePad, tb.textPosition.y + lSpace - ePad, tb.glyphLayout.width * song.getProgress() + (ePad * 2), tb.glyphLayout.height + (ePad * 2));
           sr.end();
         }
         gm.getBatch().begin();
         if (nextLineProgress <= 0) {
           for (int i = -1; i <= 2; i++) {
             if (I + i >= 0 && I + i < song.lines.size()) {
-              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * 50 + 25);
+              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace);
             }
           }
         } else {
@@ -146,7 +152,7 @@ public class SongPlayingScene extends ApplicationAdapter {
               }/* else if (i == 0 && line.begin < song.getTimestamp()) {
                 nextLineProgress = 0;
               }*/
-              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * 50 + 25 - p * 50);
+              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace - p * (lSpace * 2));
             }
           }
           //nextLineProgress -= 0.05f;

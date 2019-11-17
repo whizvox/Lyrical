@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
@@ -23,28 +24,45 @@ public class TitleScene extends ApplicationAdapter {
   private Texture logoTex;
   private TextBox versionTb;
 
+  private float ePad;
+  private float logoSize;
+  private Rectangle logoBounds;
+
   public TitleScene(GraphicsManager gm) {
     this.gm = gm;
   }
 
   @Override
   public void create() {
+    ePad = gm.getWidth() / 120f;
+
     selected = 0;
-    menuTbs = new TextBox[3];
-    menuTbs[0] = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Select", new Rectangle(
-        0, (float)Lyrical.HEIGHT / 2 - 30, Lyrical.WIDTH, 25
+    BitmapFont font = gm.getFont(Lyrical.FONT_DISPLAY);
+    float eHeight = font.getLineHeight();
+    menuTbs = new TextBox[4];
+    menuTbs[0] = TextBox.create(font, "Select", new Rectangle(
+        0, gm.getHeight() / 2f - ePad * 6, gm.getWidth(), eHeight
     ), TextAlign.CENTER.value, Color.WHITE, false, null);
-    menuTbs[1] = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Import", new Rectangle(
-        0, (float)Lyrical.HEIGHT / 2 - 65, Lyrical.WIDTH, 25
+    menuTbs[1] = TextBox.create(font, "Import", new Rectangle(
+        0, menuTbs[0].textPosition.y - (eHeight + ePad), gm.getWidth(), eHeight
     ), TextAlign.CENTER.value, Color.WHITE, false, null);
-    menuTbs[2] = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Quit", new Rectangle(
-        0, (float)Lyrical.HEIGHT / 2 - 100, Lyrical.WIDTH, 25
+    menuTbs[2] = TextBox.create(font, "Settings", new Rectangle(
+        0, menuTbs[1].textPosition.y - (eHeight + ePad), gm.getWidth(), eHeight
     ), TextAlign.CENTER.value, Color.WHITE, false, null);
-    logoTex = new Texture(Gdx.files.internal("logo.png"));
+    menuTbs[3] = TextBox.create(font, "Quit", new Rectangle(
+        0, menuTbs[2].textPosition.y - (eHeight + ePad), gm.getWidth(), eHeight
+    ), TextAlign.CENTER.value, Color.WHITE, false, null);
 
     versionTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), "Version: [YELLOW]" + Reference.VERSION,
-        new Rectangle(5, 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT - 10),
+        new Rectangle(ePad, ePad, gm.getWidth() - (ePad * 2), gm.getHeight() - (ePad * 2)),
         TextAlign.BOTTOM_CENTER.value, Color.WHITE, false, null);
+
+    logoTex = new Texture(Gdx.files.internal("logo.png"));
+    float ar = (float)logoTex.getWidth() / logoTex.getHeight();
+    logoSize = gm.getWidth() * 0.4f; // logo's width takes up 40% of the screen
+    logoBounds = new Rectangle(
+        gm.getWidth() / 2f - logoSize / 2f, gm.getHeight() * 0.7f - (logoSize / ar) / 2f, logoSize, logoSize / ar
+    );
   }
 
   @Override
@@ -66,6 +84,9 @@ public class TitleScene extends ApplicationAdapter {
           Lyrical.getInstance().switchScene(Lyrical.SCENE_IMPORTS);
           break;
         case 2:
+          Lyrical.getInstance().switchScene(Lyrical.SCENE_SETTINGS);
+          break;
+        case 3:
           Gdx.app.exit();
           break;
       }
@@ -77,11 +98,16 @@ public class TitleScene extends ApplicationAdapter {
     sr.setColor(Color.ORANGE);
     sr.begin(ShapeRenderer.ShapeType.Filled);
     TextBox stb = menuTbs[selected];
-    sr.rect(stb.textPosition.x - 5, stb.textPosition.y - 5, stb.glyphLayout.width + 10, stb.glyphLayout.height + 10);
+    sr.rect(
+        stb.textPosition.x - ePad,
+        stb.textPosition.y - ePad,
+        stb.glyphLayout.width + (ePad * 2),
+        stb.glyphLayout.height + (ePad * 2)
+    );
     sr.end();
     SpriteBatch sb = gm.getBatch();
     sb.begin();
-    sb.draw(logoTex, Lyrical.WIDTH / 2.0f - logoTex.getWidth() / 2.0f, Lyrical.HEIGHT / 2.0f + 10 / 2.0f);
+    sb.draw(logoTex, logoBounds.x, logoBounds.y, logoBounds.width, logoBounds.height);
     for (TextBox tb : menuTbs) {
       gm.drawTextBox(Lyrical.FONT_DISPLAY, tb);
     }

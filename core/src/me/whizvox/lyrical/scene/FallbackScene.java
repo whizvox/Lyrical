@@ -19,7 +19,7 @@ public class FallbackScene extends ApplicationAdapter {
 
   @Override
   public void create() {
-    tb = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Uhh, you're not supposed to see this...", new Rectangle(0, 0, Lyrical.WIDTH, Lyrical.HEIGHT), TextAlign.CENTER.value, Color.RED, false, null);
+    tb = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Uhh, you're not supposed to see this...", new Rectangle(0, 0, gm.getWidth(), gm.getHeight()), TextAlign.CENTER.value, Color.RED, false, null);
   }
 
   @Override

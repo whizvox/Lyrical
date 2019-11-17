@@ -11,6 +11,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import me.whizvox.lyrical.Lyrical;
+import me.whizvox.lyrical.Reference;
+import me.whizvox.lyrical.Settings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,13 +24,52 @@ public class GraphicsManager extends ApplicationAdapter {
   private SpriteBatch batch;
   private ShapeRenderer shapeRenderer;
 
+  private int width, height;
+
   public GraphicsManager() {
     fonts = new HashMap<>();
     batch = new SpriteBatch();
     shapeRenderer = new ShapeRenderer();
-    viewport = new FitViewport(Lyrical.WIDTH, Lyrical.HEIGHT);
-    viewport.getCamera().translate((float)Lyrical.WIDTH / 2, (float)Lyrical.HEIGHT / 2, 0);
+    viewport = new FitViewport(Reference.Defaults.RESOLUTION_WIDTH, Reference.Defaults.RESOLUTION_HEIGHT);
+  }
+
+  public void setResolution(int width, int height) {
+    this.width = width;
+    this.height = height;
+    viewport.setWorldSize(width, height);
+    viewport.getCamera().position.set(width / 2f, height / 2f, 0);
     viewport.getCamera().update();
+    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+    int displayFontSize = (int) (width / (100f / 3));
+    int displayBorderWidth = (int) (width / 400f);
+    int uiFontSize = (int) (width / (400f / 7));
+
+    fonts.forEach((id, font) -> {
+      font.dispose();
+    });
+    fonts.clear();
+    FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts/notosans/NotoSans-Regular.ttf"));
+    FreeTypeFontGenerator.FreeTypeFontParameter par = new FreeTypeFontGenerator.FreeTypeFontParameter();
+    par.size = displayFontSize;
+    par.borderColor = Color.BLACK;
+    par.borderWidth = displayBorderWidth;
+    BitmapFont font = gen.generateFont(par);
+    font.getData().markupEnabled = true;
+    registerFont(Lyrical.FONT_DISPLAY, font);
+    par.size = uiFontSize;
+    par.borderWidth = 0;
+    BitmapFont uiFont = gen.generateFont(par);
+    uiFont.getData().markupEnabled = true;
+    registerFont(Lyrical.FONT_UI, uiFont);
+  }
+
+  public int getWidth() {
+    return width;
+  }
+
+  public int getHeight() {
+    return height;
   }
 
   public SpriteBatch getBatch() {
@@ -60,19 +101,12 @@ public class GraphicsManager extends ApplicationAdapter {
 
   @Override
   public void create() {
-    FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts/notosans/NotoSans-Regular.ttf"));
-    FreeTypeFontGenerator.FreeTypeFontParameter par = new FreeTypeFontGenerator.FreeTypeFontParameter();
-    par.size = 24;
-    par.borderColor = Color.BLACK;
-    par.borderWidth = 2;
-    BitmapFont font = gen.generateFont(par);
-    font.getData().markupEnabled = true;
-    registerFont(Lyrical.FONT_DISPLAY, font);
-    par.size = 14;
-    par.borderWidth = 0;
-    BitmapFont uiFont = gen.generateFont(par);
-    uiFont.getData().markupEnabled = true;
-    registerFont(Lyrical.FONT_UI, uiFont);
+    Settings settings = Lyrical.getInstance().getSettings();
+
+    int width = settings.getInt(Reference.Settings.RESOLUTION_WIDTH, Reference.Defaults.RESOLUTION_WIDTH);
+    int height = settings.getInt(Reference.Settings.RESOLUTION_HEIGHT, Reference.Defaults.RESOLUTION_HEIGHT);
+
+    setResolution(width, height);
   }
 
   @Override

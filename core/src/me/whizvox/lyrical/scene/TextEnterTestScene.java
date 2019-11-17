@@ -27,7 +27,7 @@ public class TextEnterTestScene extends ApplicationAdapter {
 
   private void updateTextBox() {
     tb = TextBox.create(gm.getFont(Lyrical.FONT_UI), ((TextEntryProcessor)Gdx.input.getInputProcessor()).getText().toString(),
-        new Rectangle(5, 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT - 10), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
+        new Rectangle(5, 5, gm.getWidth() - 10, gm.getHeight() - 10), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
   }
 
   @Override

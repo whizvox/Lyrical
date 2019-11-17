@@ -93,25 +93,47 @@ public class Editor extends ApplicationAdapter {
       META_LANGUAGE = 2,
       META_CHARTER = 3;
 
+  private float ePad;
+  private float cWidth;
+  private float ltbHeight;
+  private float tlHeight;
+
   public Editor(GraphicsManager gm) {
     this.gm = gm;
   }
 
   private void updateLineEditTextBox() {
-    lineEditTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), tep.getText().toString(), new Rectangle(5, Lyrical.HEIGHT / 2f + 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT / 2f - 10), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
+    lineEditTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_UI),
+        tep.getText().toString(),
+        new Rectangle(
+            ePad,
+            gm.getHeight() / 2f + ePad,
+            gm.getWidth() - ePad * 2,
+            gm.getHeight() / 2f - ePad * 2),
+        TextAlign.TOP_LEFT.value,
+        Color.WHITE,
+        true,
+        null
+    );
   }
 
   private void updateLineEditCursor() {
     Vector2 pos = tep.getOnScreenCursorPos(gm, lineEditTb);
-    lineEditCursor = new Rectangle(lineEditTb.textPosition.x + pos.x, lineEditTb.textPosition.y + lineEditTb.glyphLayout.height + pos.y, 2, gm.getFont(Lyrical.FONT_UI).getLineHeight());
+    lineEditCursor = new Rectangle(
+        lineEditTb.textPosition.x + pos.x,
+        lineEditTb.textPosition.y + lineEditTb.glyphLayout.height + pos.y,
+        cWidth,
+        gm.getFont(Lyrical.FONT_UI).getLineHeight()
+    );
   }
 
   private TextBox createTextBoxForLine(Line line) {
     return TextBox.create(gm.getFont(Lyrical.FONT_UI), line.text, new Rectangle(
-        Lyrical.WIDTH / 2f,
-        25,
-        ((line.end - line.begin) * Lyrical.WIDTH) / 10000f,
-        Lyrical.HEIGHT / 2f - 50
+        gm.getWidth() / 2f,
+        ltbHeight,
+        ((line.end - line.begin) * gm.getWidth()) / 10000f,
+        gm.getHeight() / 2f - (ltbHeight * 2)
     ), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
   }
 
@@ -137,13 +159,28 @@ public class Editor extends ApplicationAdapter {
           s = "(Unknown)";
       }
     }
-    songMetaTbs[i * 2 + 1] = TextBox.create(gm.getFont(Lyrical.FONT_UI), s, new Rectangle(5, Lyrical.HEIGHT * (0.7f - i * 0.1f), Lyrical.WIDTH - 10, 25), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
+    songMetaTbs[i * 2 + 1] = TextBox.create(
+        gm.getFont(Lyrical.FONT_UI),
+        s,
+        new Rectangle(
+            ePad,
+            gm.getHeight() * (0.7f - i * 0.1f),
+            gm.getWidth() - (ePad * 2),
+            ltbHeight
+        ),
+        TextAlign.TOP_LEFT.value, Color.WHITE, true, null
+    );
   }
 
   private void updateSongMetaCursorPos() {
     TextBox tb = songMetaTbs[selectedSongMeta * 2 + 1];
     Vector2 pos = tep.getOnScreenCursorPos(gm, tb);
-    songMetaCursorPos = new Rectangle(tb.textPosition.x + pos.x, tb.textPosition.y + tb.glyphLayout.height + pos.y, 2, gm.getFont(Lyrical.FONT_UI).getLineHeight());
+    songMetaCursorPos = new Rectangle(
+        tb.textPosition.x + pos.x,
+        tb.textPosition.y + tb.glyphLayout.height + pos.y,
+        cWidth,
+        gm.getFont(Lyrical.FONT_UI).getLineHeight()
+    );
   }
 
   private void moveSelectedLine(boolean left) {
@@ -204,6 +241,11 @@ public class Editor extends ApplicationAdapter {
 
   @Override
   public void create() {
+    ePad = gm.getWidth() / 120f;
+    cWidth = gm.getWidth() / 400f;
+    ltbHeight = gm.getHeight() / 18f;
+    tlHeight = gm.getHeight() / (800f / 3);
+
     Object transData = Lyrical.getInstance().getTransitionData();
     newSong = false;
     if (transData instanceof Pair) {
@@ -272,32 +314,84 @@ public class Editor extends ApplicationAdapter {
         default:
           s = "(Unknown)";
       }
-      songMetaTbs[i * 2] = TextBox.create(gm.getFont(Lyrical.FONT_UI), s + ":", new Rectangle(
-          5, Lyrical.HEIGHT * (0.75f - i * 0.1f), Lyrical.WIDTH - 10, 25
-      ), TextAlign.TOP_LEFT.value, Color.YELLOW, false, null);
+      songMetaTbs[i * 2] = TextBox.create(
+          gm.getFont(Lyrical.FONT_UI),
+          s + ":",
+          new Rectangle(
+              ePad,
+              gm.getHeight() * (0.75f - i * 0.1f),
+              gm.getWidth() - (ePad * 2),
+              ltbHeight
+          ),
+          TextAlign.TOP_LEFT.value,
+          Color.YELLOW,
+          false,
+          null
+      );
       updateSongMetaTextBox(i, false);
     }
     songMetaCursorPos = new Rectangle();
     lineMoveMode = LineMoveMode.WHOLE;
     lineMoveAmount = 0;
 
-    savedTb = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Saved!", new Rectangle(
-        5, 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT - 10
-    ), TextAlign.BOTTOM_RIGHT.value, Color.GREEN, false, null);
+    savedTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_DISPLAY),
+        "Saved!",
+        new Rectangle(
+            ePad,
+            ePad,
+            gm.getWidth() - (ePad * 2),
+            gm.getHeight() - (ePad * 2)
+        ),
+        TextAlign.BOTTOM_RIGHT.value,
+        Color.GREEN,
+        false,
+        null
+    );
     savedTbLife = 0;
-    previewSetTb = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), "Preview point set!", new Rectangle(
-        5, 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT - 10
-    ), TextAlign.BOTTOM_RIGHT.value, Color.GREEN, false, null);
+    previewSetTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_DISPLAY),
+        "Preview point set!",
+        new Rectangle(
+            ePad,
+            ePad,
+            gm.getWidth() - (ePad * 2),
+            gm.getHeight() - (ePad * 2)
+        ),
+        TextAlign.BOTTOM_RIGHT.value,
+        Color.GREEN,
+        false,
+        null
+    );
     previewSetTbLife = 0;
     markForExit = false;
 
     forceDrawCursorBar = false;
-    unsavedTb = TextBox.create(gm.getFont(Lyrical.FONT_UI),
+    unsavedTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_UI),
         "[YELLOW]There are unsaved changes![] Are you sure you want to exit?\n" +
         "[GRAY][[Esc][] Cancel | [GRAY][[Enter][] Confirm and save | [GRAY][[Ctrl][]+[GRAY][[Enter][] [CORAL]Confirm without saving[]",
-        new Rectangle(0, 0, Lyrical.WIDTH, Lyrical.HEIGHT), TextAlign.CENTER.value, Color.WHITE, false, null);
+        new Rectangle(0, 0, gm.getWidth(), gm.getHeight()),
+        TextAlign.CENTER.value,
+        Color.WHITE,
+        false,
+        null
+    );
 
-    helpTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), HELP_TEXT, new Rectangle(5, 5, Lyrical.WIDTH - 10, Lyrical.HEIGHT - 10), TextAlign.TOP_LEFT.value, Color.WHITE, true, null);
+    helpTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_UI),
+        HELP_TEXT,
+        new Rectangle(
+            ePad,
+            ePad,
+            gm.getWidth() - (ePad * 2),
+            gm.getHeight() - (ePad * 2)
+        ),
+        TextAlign.TOP_LEFT.value,
+        Color.WHITE,
+        true,
+        null
+    );
   }
 
   @Override
@@ -549,16 +643,21 @@ public class Editor extends ApplicationAdapter {
       sr.setColor(Color.WHITE);
       sr.begin(ShapeRenderer.ShapeType.Filled);
       if (timelinePos > 10000) {
-        sr.rect(0, Lyrical.HEIGHT / 2f - 3, Lyrical.WIDTH, 6);
+        sr.rect(0, gm.getHeight() / 2f - tlHeight, gm.getWidth(), tlHeight * 2);
       } else {
-        float w = (timelinePos / 10000f) * Lyrical.WIDTH / 2f;
-        sr.rect(Lyrical.WIDTH / 2f - w, Lyrical.HEIGHT / 2f - 3, Lyrical.WIDTH - (Lyrical.WIDTH / 2f - w), 6);
+        float w = (timelinePos / 10000f) * gm.getWidth() / 2f;
+        sr.rect(
+            gm.getWidth() / 2f - w,
+            gm.getHeight() / 2f - tlHeight,
+            gm.getWidth() - (gm.getWidth() / 2f - w),
+            tlHeight * 2
+        );
       }
-      sr.rect(Lyrical.WIDTH / 2f - 3, Lyrical.HEIGHT / 2f, 6, 20);
+      sr.rect(gm.getWidth() / 2f - tlHeight, gm.getHeight() / 2f, tlHeight * 2, ltbHeight);
 
       if (newInsertLine != null) {
-        final float x = ((newInsertLine.begin - timelinePos) * Lyrical.WIDTH) / 10000f + Lyrical.WIDTH / 2f;
-        sr.rect(x, Lyrical.HEIGHT / 2f - 66, Lyrical.WIDTH / 2f - x, 50);
+        final float x = ((newInsertLine.begin - timelinePos) * gm.getWidth()) / 10000f + gm.getWidth() / 2f;
+        sr.rect(x, gm.getHeight() / 2f - ltbHeight * 2, gm.getWidth() / 2f - x, ltbHeight * 2);
       }
       sr.end();
 
@@ -567,10 +666,9 @@ public class Editor extends ApplicationAdapter {
       int i = 0;
       for (TextBox tb : linesTbs) {
         line = song.lines.get(i);
-        final float x = ((line.begin - timelinePos) * Lyrical.WIDTH) / 10000f + Lyrical.WIDTH / 2f;
-        //final float w = ((line.end - line.begin - timelinePos) * Lyrical.WIDTH) / 10000f + Lyrical.WIDTH / 2f;
+        final float x = ((line.begin - timelinePos) * gm.getWidth()) / 10000f + gm.getWidth() / 2f;
         final float w = tb.outerBounds.width;
-        if (x + w >= 0 && x < Lyrical.WIDTH) {
+        if (x + w >= 0 && x < gm.getWidth()) {
           sb.end();
           sr.begin(ShapeRenderer.ShapeType.Filled);
           if (i == selectedLine) {
@@ -578,18 +676,18 @@ public class Editor extends ApplicationAdapter {
           } else {
             sr.setColor(Color.DARK_GRAY);
           }
-          sr.rect(tb.outerBounds.x + x - tb.textPosition.x, Lyrical.HEIGHT / 2f - tb.glyphLayout.height - 53, tb.outerBounds.width, tb.glyphLayout.height + 50);
+          sr.rect(tb.outerBounds.x + x - tb.textPosition.x, gm.getHeight() / 2f - tb.glyphLayout.height - (ltbHeight * 2 + tlHeight), tb.outerBounds.width, tb.glyphLayout.height + ltbHeight * 2);
           if (i == selectedLine && editingState == EditingState.MOVE_LINE) {
             sr.setColor(Color.YELLOW);
             switch (lineMoveMode) {
               case BEGIN:
-                sr.rect(tb.outerBounds.x + x - tb.textPosition.x, Lyrical.HEIGHT / 2f - tb.glyphLayout.height - 53, 2, tb.glyphLayout.height + 50);
+                sr.rect(tb.outerBounds.x + x - tb.textPosition.x, gm.getHeight() / 2f - tb.glyphLayout.height - (ltbHeight * 2 + tlHeight), cWidth, tb.glyphLayout.height + ltbHeight * 2);
                 break;
               case WHOLE:
-                sr.rect(tb.outerBounds.x + x - tb.textPosition.x, Lyrical.HEIGHT / 2f - tb.glyphLayout.height - 53, tb.outerBounds.width, 2);
+                sr.rect(tb.outerBounds.x + x - tb.textPosition.x, gm.getHeight() / 2f - tb.glyphLayout.height - (ltbHeight * 2 + tlHeight), tb.outerBounds.width, cWidth);
                 break;
               case END:
-                sr.rect(tb.outerBounds.x + x - tb.textPosition.x + w - 2, Lyrical.HEIGHT / 2f - tb.glyphLayout.height - 53, 2, tb.glyphLayout.height + 50);
+                sr.rect(tb.outerBounds.x + x - tb.textPosition.x + w - cWidth, gm.getHeight() / 2f - tb.glyphLayout.height - (ltbHeight * 2 + tlHeight), cWidth, tb.glyphLayout.height + ltbHeight * 2);
                 break;
             }
           }
@@ -622,8 +720,8 @@ public class Editor extends ApplicationAdapter {
         default:
           editModeStr = "(Unknown)";
       }
-      gm.getFont(Lyrical.FONT_UI).draw(sb, "Mode: [GREEN]" + editModeStr, 200, 50);
-      gm.getFont(Lyrical.FONT_UI).draw(sb, "Position: [YELLOW]" + String.format("%.03f", (song.getTimestamp() / 1000f)) + "[] sec", 50, 50);
+      gm.getFont(Lyrical.FONT_UI).draw(sb, "Mode: [GREEN]" + editModeStr, gm.getWidth() / 4f, ePad + ltbHeight);
+      gm.getFont(Lyrical.FONT_UI).draw(sb, "Position: [YELLOW]" + String.format("%.03f", (song.getTimestamp() / 1000f)) + "[] sec", ePad, ePad + ltbHeight);
       sb.end();
     } else {
       if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -720,7 +818,12 @@ public class Editor extends ApplicationAdapter {
             sr.setColor(Color.DARK_GRAY);
           }
           sr.begin(ShapeRenderer.ShapeType.Filled);
-          sr.rect(tb.textPosition.x - 5, tb.textPosition.y - 5, tb.glyphLayout.width + 10, tb.glyphLayout.height + 10);
+          sr.rect(
+              tb.textPosition.x - ePad,
+              tb.textPosition.y - ePad,
+              tb.glyphLayout.width + (ePad * 2),
+              tb.glyphLayout.height + (ePad * 2)
+          );
           if (tep.isEnteringText() && (tep.drawCursorBar() || forceDrawCursorBar)) {
             forceDrawCursorBar = false;
             sr.setColor(Color.WHITE);

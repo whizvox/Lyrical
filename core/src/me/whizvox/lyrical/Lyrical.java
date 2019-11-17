@@ -2,19 +2,16 @@ package me.whizvox.lyrical;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import me.whizvox.lyrical.graphics.GraphicsManager;
 import me.whizvox.lyrical.scene.*;
 import me.whizvox.lyrical.song.SongsRepository;
-import me.whizvox.lyrical.util.StringUtils;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +22,8 @@ public class Lyrical extends ApplicationAdapter {
 
 	SongsRepository repo;
 
+	private Settings settings;
+
 	private Map<Integer, ApplicationAdapter> scenes;
 	private ApplicationAdapter currentScene;
 	private ApplicationAdapter queuedScene;
@@ -33,6 +32,44 @@ public class Lyrical extends ApplicationAdapter {
 
 	@Override
 	public void create() {
+		settings = new Settings();
+		if (!Reference.Files.SETTINGS.exists()) {
+			Reference.Files.SETTINGS.writeBytes(new byte[0], false);
+		}
+		try (Reader reader = Reference.Files.SETTINGS.reader()) {
+			settings.load(reader);
+			System.out.println("Settings loaded");
+		} catch (IOException e) {
+			System.err.println("Could not load settings from <" + Reference.Files.SETTINGS.path() + ">");
+			e.printStackTrace();
+			Gdx.app.exit();
+		}
+		boolean moreSettingsAdded = false;
+		if (!settings.containsKey(Reference.Settings.RESOLUTION_WIDTH)) {
+			settings.set(Reference.Settings.RESOLUTION_WIDTH, Reference.Defaults.RESOLUTION_WIDTH);
+			moreSettingsAdded = true;
+		}
+		if (!settings.containsKey(Reference.Settings.RESOLUTION_HEIGHT)) {
+			settings.set(Reference.Settings.RESOLUTION_HEIGHT, Reference.Defaults.RESOLUTION_HEIGHT);
+			moreSettingsAdded = true;
+		}
+		if (!settings.containsKey(Reference.Settings.FULLSCREEN)) {
+			settings.set(Reference.Settings.FULLSCREEN, Reference.Defaults.FULLSCREEN);
+			moreSettingsAdded = true;
+		}
+		if (moreSettingsAdded) {
+			try (Writer writer = Reference.Files.SETTINGS.writer(false, "UTF-8")) {
+				settings.save(writer);
+				System.out.println("Saved settings at " + Reference.Files.SETTINGS.path());
+			} catch (IOException e) {
+				System.err.println("Could not save settings at " + Reference.Files.SETTINGS.path());
+				e.printStackTrace();
+			}
+		}
+		if (settings.getBool(Reference.Settings.FULLSCREEN, Reference.Defaults.FULLSCREEN)) {
+			Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+		}
+
 		gm = new GraphicsManager();
 		gm.create();
 		batch = gm.getBatch();
@@ -66,6 +103,7 @@ public class Lyrical extends ApplicationAdapter {
 		scenes.put(SCENE_EDITOR, new Editor(gm));
 		scenes.put(SCENE_DEBUG, new TextEnterTestScene(gm));
 		scenes.put(SCENE_IMPORTS, new ImportScene(gm));
+		scenes.put(SCENE_SETTINGS, new SettingsScene(gm));
 		currentScene = scenes.get(SCENE_TITLE);
 		currentScene.create();
 		queuedScene = null;
@@ -98,6 +136,10 @@ public class Lyrical extends ApplicationAdapter {
 	public void dispose() {
 		gm.dispose();
 		currentScene.dispose();
+	}
+
+	public Settings getSettings() {
+		return settings;
 	}
 
 	public Object getTransitionData() {
@@ -134,7 +176,6 @@ public class Lyrical extends ApplicationAdapter {
 			SCENE_EDITOR = 3,
 			SCENE_DEBUG = 4,
 			SCENE_IMPORTS = 5,
-			WIDTH = 800,
-			HEIGHT = 450;
+			SCENE_SETTINGS = 6;
 
 }

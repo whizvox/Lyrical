@@ -50,4 +50,15 @@ public class StringUtils {
     return sb.toString();
   }
 
+  public static boolean parseBoolean(String s) {
+    if (s != null) {
+      if ("true".equalsIgnoreCase(s) || "1".equals(s)) {
+        return true;
+      } else if ("false".equalsIgnoreCase(s) || "0".equals(s)) {
+        return false;
+      }
+    }
+    throw new IllegalArgumentException("Not a valid boolean: " + s);
+  }
+
 }
