@@ -124,12 +124,12 @@ public class GraphicsManager extends ApplicationAdapter {
     shapeRenderer.dispose();
   }
 
-  public void drawTextBox(int fontId, TextBox tb, float disHorz, float disVert) {
-    fonts.get(fontId).draw(batch, tb.glyphLayout, tb.outerBounds.x + disHorz, tb.textPosition.y + tb.glyphLayout.height + disVert);
+  public void drawTextBox(TextBox tb, float dx, float dy) {
+    tb.font.draw(batch, tb.glyphLayout, tb.outerBounds.x + dx, tb.textPosition.y + tb.glyphLayout.height + dy);
   }
 
-  public void drawTextBox(int fontId, TextBox tb) {
-    fonts.get(fontId).draw(batch, tb.glyphLayout, tb.outerBounds.x, tb.textPosition.y + tb.glyphLayout.height);
+  public void drawTextBox(TextBox tb) {
+    tb.font.draw(batch, tb.glyphLayout, tb.outerBounds.x, tb.textPosition.y + tb.glyphLayout.height);
   }
 
 }

@@ -13,6 +13,7 @@ import me.whizvox.lyrical.Lyrical;
 import me.whizvox.lyrical.Reference;
 import me.whizvox.lyrical.Settings;
 import me.whizvox.lyrical.TextEntryProcessor;
+import me.whizvox.lyrical.graphics.DynamicTextBox;
 import me.whizvox.lyrical.graphics.GraphicsManager;
 import me.whizvox.lyrical.graphics.TextAlign;
 import me.whizvox.lyrical.graphics.TextBox;
@@ -65,7 +66,7 @@ public class SettingsScene extends ApplicationAdapter {
     tep = new TextEntryProcessor();
     Gdx.input.setInputProcessor(tep);
 
-    options = new Option[3];
+    options = new Option[4];
 
     // resolution
     int resWidth = settings.getInt(Reference.Settings.RESOLUTION_WIDTH, RESOLUTION_WIDTH_DEFAULT);
@@ -94,8 +95,13 @@ public class SettingsScene extends ApplicationAdapter {
     boolean fs = settings.getBool(Reference.Settings.FULLSCREEN, false);
     options[1] = new ChoiceOption("Fullscreen", new String[] {"No", "Yes"}, fs ? 1 : 0);
 
+    // volume
+    options[2] = new SliderOption(
+        "Music volume", settings.getInt(Reference.Settings.MUSIC_VOLUME, Reference.Defaults.MUSIC_VOLUME), 0, 100
+    );
+
     // apply
-    options[2] = new ApplyOption();
+    options[3] = new ApplyOption();
 
     float yoff = gm.getHeight() - ePad;
     for (Option option : options) {
@@ -128,6 +134,7 @@ public class SettingsScene extends ApplicationAdapter {
         }
         final boolean fs = ((ChoiceOption) options[1]).getSelectedIndex() != 0;
         settings.set(Reference.Settings.FULLSCREEN, fs);
+        settings.set(Reference.Settings.MUSIC_VOLUME, ((SliderOption) options[2]).getValue());
         try (Writer writer = Reference.Files.SETTINGS.writer(false, "UTF-8")) {
           settings.save(writer);
           System.out.println("Settings saved at " + Reference.Files.SETTINGS.path());
@@ -224,7 +231,7 @@ public class SettingsScene extends ApplicationAdapter {
     public void create(float yoff) {
       BitmapFont font = gm.getFont(Lyrical.FONT_UI);
       elementHeight = font.getLineHeight();
-      applyTb = TextBox.create(font, "Apply", new Rectangle(
+      applyTb = TextBox.create(font, "[YELLOW]Apply", new Rectangle(
           ePad, yoff - elementHeight, gm.getWidth() - (ePad * 2), elementHeight
       ), TextAlign.LEFT.value, Color.WHITE, false, null);
       confirmTb = TextBox.create(gm.getFont(Lyrical.FONT_UI),
@@ -269,7 +276,7 @@ public class SettingsScene extends ApplicationAdapter {
         if (active) {
           sr.setColor(Color.PURPLE);
         } else {
-          sr.setColor(Color.GRAY);
+          sr.setColor(Color.DARK_GRAY);
         }
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.rect(
@@ -282,16 +289,15 @@ public class SettingsScene extends ApplicationAdapter {
       }
 
       sb.begin();
-      gm.drawTextBox(Lyrical.FONT_UI, applyTb);
+      gm.drawTextBox(applyTb);
       if (active) {
-        gm.drawTextBox(Lyrical.FONT_UI, confirmTb);
+        gm.drawTextBox(confirmTb);
       }
       sb.end();
     }
 
     @Override
     public void dispose() {
-
     }
   }
 
@@ -301,7 +307,7 @@ public class SettingsScene extends ApplicationAdapter {
     private Object[] choices;
 
     private TextBox labelTb;
-    private TextBox choiceTb;
+    private DynamicTextBox choiceTb;
     private int selected;
     private int prevSelected;
 
@@ -322,14 +328,9 @@ public class SettingsScene extends ApplicationAdapter {
         if (selected < 0 || selected >= choices.length) {
           selected = 0;
         }
-        text = String.valueOf(choices[selected]);
+        text = "[YELLOW]" + choices[selected];
       }
-      choiceTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), text, new Rectangle(
-          labelTb.outerBounds.x + labelTb.glyphLayout.width + (ePad * 2),
-          labelTb.outerBounds.y,
-          gm.getWidth() - labelTb.outerBounds.width,
-          elementHeight
-      ), TextAlign.LEFT.value, Color.WHITE, false, null);
+      choiceTb.updateText(text);
     }
 
     public int getSelectedIndex() {
@@ -348,18 +349,21 @@ public class SettingsScene extends ApplicationAdapter {
     @Override
     public void create(float yoff) {
       elementHeight = gm.getFont(Lyrical.FONT_UI).getLineHeight();
-      labelTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), label + ": ",
-          new Rectangle(
-            ePad,
-            yoff - elementHeight,
-            gm.getWidth() - (ePad * 2),
-            elementHeight
-          ),
-          TextAlign.LEFT.value,
-          Color.WHITE,
-          false,
-          null
+      BitmapFont uiFont = gm.getFont(Lyrical.FONT_UI);
+
+      labelTb = TextBox.create(
+          uiFont, label + ": ",
+          new Rectangle(ePad, yoff - elementHeight, gm.getWidth() - (ePad * 2), elementHeight),
+          TextAlign.LEFT.value, Color.WHITE, false, null
       );
+      choiceTb = DynamicTextBox.create(
+          uiFont, "",
+          new Rectangle(
+            labelTb.outerBounds.x + labelTb.glyphLayout.width + (ePad * 2),
+            labelTb.outerBounds.y,
+            gm.getWidth() - (labelTb.outerBounds.x + labelTb.glyphLayout.width),
+            elementHeight
+          ), TextAlign.LEFT.value, Color.WHITE, false, null);
       updateChoiceTextBox();
       active = false;
     }
@@ -379,12 +383,12 @@ public class SettingsScene extends ApplicationAdapter {
       if (active) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
           if (--selected < 0) {
-            selected = 0;
+            selected = choices.length - 1;
           }
           updateChoiceTextBox();
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
           if (++selected >= choices.length) {
-            selected = choices.length - 1;
+            selected = 0;
           }
           updateChoiceTextBox();
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -411,7 +415,7 @@ public class SettingsScene extends ApplicationAdapter {
         );
         sr.end();
       } else if (isSelected) {
-        sr.setColor(Color.GRAY);
+        sr.setColor(Color.DARK_GRAY);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.rect(
             choiceTb.textPosition.x - ePad,
@@ -422,8 +426,180 @@ public class SettingsScene extends ApplicationAdapter {
         sr.end();
       }
       sb.begin();
-      gm.drawTextBox(Lyrical.FONT_UI, labelTb);
-      gm.drawTextBox(Lyrical.FONT_UI, choiceTb);
+      gm.drawTextBox(labelTb);
+      gm.drawTextBox(choiceTb);
+      sb.end();
+    }
+
+    @Override
+    public void dispose() {}
+  }
+
+  public class SliderOption implements Option {
+
+    public final int min, max;
+
+    private int value;
+    private int prevValue;
+    private String label;
+
+    private TextBox labelTb;
+    private DynamicTextBox valueTb;
+
+    private float elementHeight;
+    private float barThickness;
+
+    private Rectangle barBounds;
+    private Rectangle cursorBounds;
+    private float xoff;
+
+    private boolean active;
+
+    private long lastLeft, lastRight;
+
+    public SliderOption(String label, int initialValue, int min, int max) {
+      this.label = label;
+      this.value = initialValue;
+      this.min = min;
+      this.max = max;
+      active = false;
+    }
+
+    private void updateXOffset() {
+      xoff = ((float) value / (max - min)) * barBounds.width - barThickness / 2f;
+    }
+
+    private void _setInactive() {
+      active = false;
+      valueTb.updateColor(Color.YELLOW);
+      setInactive();
+    }
+
+    public int getValue() {
+      return value;
+    }
+
+    @Override
+    public float getHeight() {
+      return elementHeight;
+    }
+
+    @Override
+    public void create(float yoff) {
+      lastLeft = 0;
+      lastRight = 0;
+
+      BitmapFont uiFont = gm.getFont(Lyrical.FONT_UI);
+      elementHeight = uiFont.getLineHeight();
+      barThickness = gm.getWidth() / 400f;
+
+      labelTb = DynamicTextBox.create(
+          uiFont, label + ": ",
+          new Rectangle(ePad, yoff - elementHeight, gm.getWidth() - (ePad * 2), elementHeight),
+          TextAlign.LEFT.value, Color.WHITE, false, null
+      );
+
+      barBounds = new Rectangle(
+          labelTb.textPosition.x + labelTb.glyphLayout.width + (ePad * 2),
+          labelTb.textPosition.y + (labelTb.glyphLayout.height / 2f) - (barThickness / 2f),
+          gm.getWidth() * 0.25f,
+          barThickness
+      );
+      cursorBounds = new Rectangle(
+          barBounds.x, barBounds.y - barThickness * 3, barThickness, barThickness * 7
+      );
+      updateXOffset();
+
+      valueTb = DynamicTextBox.create(
+          uiFont, "",
+          new Rectangle(
+              barBounds.x + barBounds.width + (ePad * 2),
+              labelTb.outerBounds.y,
+              gm.getWidth() - (labelTb.outerBounds.x + labelTb.glyphLayout.width - barBounds.width),
+              elementHeight
+          ),
+          TextAlign.LEFT.value, Color.YELLOW, false, null
+      );
+    }
+
+    @Override
+    public void onActive() {
+      active = true;
+      valueTb.updateColor(Color.WHITE);
+      prevValue = value;
+    }
+
+    @Override
+    public void render(boolean selected) {
+      if (active) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+          value = prevValue;
+          updateXOffset();
+          _setInactive();
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+          _setInactive();
+        }
+        final long t = System.currentTimeMillis();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+          lastLeft = t;
+          if (--value < min) {
+            value = min;
+          }
+          updateXOffset();
+        } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+          if (t - lastLeft >= 500 && --value < min) {
+            value = min;
+          }
+          updateXOffset();
+        } else if (lastLeft != 0) {
+          lastLeft = 0;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+          lastRight = t;
+          if (++value > max) {
+            value = max;
+          }
+          updateXOffset();
+        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+          if (lastRight == 0) {
+            lastRight = t;
+          }
+          if (t - lastRight >= 500 && ++value > max) {
+            value = max;
+          }
+          updateXOffset();
+        } else if (lastRight != 0) {
+          lastRight = 0;
+        }
+      }
+
+      ShapeRenderer sr = gm.getShapeRenderer();
+      SpriteBatch sb = gm.getBatch();
+
+      sr.setColor(Color.WHITE);
+      sr.begin(ShapeRenderer.ShapeType.Filled);
+      sr.rect(barBounds.x, barBounds.y, barBounds.width, barBounds.height);
+      if (active) {
+        sr.setColor(Color.PURPLE);
+      }
+      sr.rect(cursorBounds.x + xoff, cursorBounds.y, cursorBounds.width, cursorBounds.height);
+      if (selected || active) {
+        if (!active) {
+          sr.setColor(Color.DARK_GRAY);
+        }
+        sr.rect(valueTb.textPosition.x - ePad,
+            valueTb.textPosition.y - ePad,
+            valueTb.glyphLayout.width + (ePad * 2),
+            valueTb.glyphLayout.height + (ePad * 2)
+        );
+      }
+      sr.end();
+
+      valueTb.updateText("[YELLOW]" + value);
+
+      sb.begin();
+      gm.drawTextBox(labelTb);
+      gm.drawTextBox(valueTb);
       sb.end();
     }
 

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Disposable;
+import me.whizvox.lyrical.Lyrical;
 import me.whizvox.lyrical.Reference;
 import me.whizvox.lyrical.util.Pair;
 import me.whizvox.lyrical.util.StringUtils;
@@ -49,6 +50,7 @@ public class Song implements Disposable {
 
   public void play() {
     music.play();
+    music.setVolume(Lyrical.getInstance().getSettings().getInt(Reference.Settings.MUSIC_VOLUME, Reference.Defaults.MUSIC_VOLUME) / 100f);
     start = System.currentTimeMillis();
   }
 
@@ -60,7 +62,7 @@ public class Song implements Disposable {
     if (currentLine != -1) {
       return timestamp > getCurrentLine().end;
     }
-    return false;
+    return true;
   }
 
   public void pause() {
@@ -70,6 +72,7 @@ public class Song implements Disposable {
 
   public void resume() {
     music.play();
+    music.setVolume(Lyrical.getInstance().getSettings().getInt(Reference.Settings.MUSIC_VOLUME, Reference.Defaults.MUSIC_VOLUME) / 100f);
     start += System.currentTimeMillis() - paused;
     paused = 0;
   }
@@ -92,7 +95,6 @@ public class Song implements Disposable {
       }
       if (timestamp > c.end) {
         progress = 0;
-        //start = -1;
       } else if (timestamp >= c.begin) {
         progress = 1 - (float) (c.end - timestamp) / (c.end - c.begin);
       }
@@ -178,7 +180,6 @@ public class Song implements Disposable {
     }
     FileHandle inFile = Gdx.files.local(filePath).child(song.metadata.filePath);
     FileHandle outFile = Reference.Files.CACHE_DIR.child(UUID.randomUUID().toString() + ".wav");
-    //outFile.writeBytes(new byte[0], false);
     try {
       String[] cmd = {
           "ffmpeg",
@@ -304,13 +305,16 @@ public class Song implements Disposable {
           }
         }
       }
-      if (!readMetadataOnly && song.lines.isEmpty()) {
-        System.err.println("Song in <" + filePath + "> has no lines");
-      }
       if (readMetadataOnly) {
         return song.metadata;
       }
-      song.music = Gdx.audio.newMusic(Gdx.files.local(filePath.getParent().resolve(song.metadata.filePath).toString()));
+      FileHandle audioPath = Gdx.files.local(filePath.getParent().resolve(song.metadata.filePath).toString());
+      if (audioPath.exists()) {
+        song.music = Gdx.audio.newMusic(audioPath);
+      } else {
+        System.err.println("Could not load audio, as it does not exist: " + audioPath.path());
+        song.music = Gdx.audio.newMusic(Gdx.files.internal("silence.wav"));
+      }
       return song;
     }
   }

@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.math.Vector2;
 import me.whizvox.lyrical.Lyrical;
 import me.whizvox.lyrical.Reference;
 import me.whizvox.lyrical.TextEntryProcessor;
+import me.whizvox.lyrical.graphics.DynamicTextBox;
 import me.whizvox.lyrical.graphics.GraphicsManager;
 import me.whizvox.lyrical.graphics.TextAlign;
 import me.whizvox.lyrical.graphics.TextBox;
@@ -35,13 +37,15 @@ public class Editor extends ApplicationAdapter {
   private Song song;
 
   private int timelinePos;
+  private DynamicTextBox positionTb;
+  private DynamicTextBox modeTb;
   private LinkedList<TextBox> linesTbs;
 
   private EditingState editingState;
   private int selectedLine;
 
   private TextEntryProcessor tep;
-  private TextBox lineEditTb;
+  private DynamicTextBox lineEditTb;
   private Rectangle lineEditCursor;
 
   private Line newInsertLine;
@@ -66,26 +70,40 @@ public class Editor extends ApplicationAdapter {
   private TextBox unsavedTb;
 
   private TextBox helpTb;
-  private static final String HELP_TEXT =
-      "[YELLOW]-- HELP MENU -- (Press [GRAY][[Escape][] to exit)\n" +
-      "[]There are 2 different views available when editing a song.\n\n" +
-      "* [GOLD]Timeline[]: Allows editing of the song's lines and lyrics\n" +
-      "  * [GRAY][[P][]: Set the preview point to the timeline's current position.\n" +
-      "  * Several different modes during this view:\n" +
-      "    * [GREEN]Browsing[]: Can browse through the song. [GRAY][[Space][] to play/pause, [GRAY][[Left][] and [GRAY][[Right][] to skip by 5 seconds.\n" +
-      "    * [GREEN]Selecting[]: Press [GRAY][[Enter][] to enter. Allows selecting of different lines with [GRAY][[Left][] and [GRAY][[Right][].\n" +
-      "    * [GREEN]Editing[]: Press [GRAY][[Enter][] once in selecting line mode. Allows editing of the selected line's text. Press [GRAY][[Enter][] to confirm or [GRAY][[Escape][] to cancel.\n" +
-      "    * [GREEN]Inserting[]: Press [GRAY][[I][] during browsing mode to enter. Hold [GRAY][[Enter][] to add a new line. Release to mark the endpoint.\n" +
-      "    * [GREEN]Moving[]: Can enter when in Selecting mode. Allows manual shifting of the selected line's time points.\n" +
-      "      * [GRAY][[Ctrl][]+[GRAY][[Left][]: Edit the begin point\n" +
-      "      * [GRAY][[Ctrl][]+[GRAY][[Down / Up][]: Edit both the begin and end points, moving the entire line\n" +
-      "      * [GRAY][[Ctrl][]+[GRAY][[Right][]: Edit the end point\n" +
-      "      * Default shift amount is 10ms. Hold [GRAY][[Alt][] to shift by 1ms, or hold [GRAY][[Shift][] to shift by 100ms.\n" +
-      "      * Once you're done, press [GRAY][[Enter][] to save your changes, or [GRAY][[Escape][] to revert back.\n" +
-      "* [GOLD]Metadata[]: Allows editing of the song's metadata, like the title, artist, etc.\n" +
-      "  * Use [GRAY][[Up][] and [GRAY][[Down][] to select the different options.\n" +
-      "  * Press [GRAY][[Enter][] to edit a piece of selected metadata. Press [GRAY][[Enter][] to confirm or [GRAY][[Escape][] to cancel.\n\n" +
-      "[GRAY][[Ctrl][]+[GRAY][[S][]: Save the song. This will update the folder name if need be.";
+  private static final String
+      HELP_TEXT =
+          "[YELLOW]-- HELP MENU -- (Press [GRAY][[Escape][] to exit)\n" +
+          "[]There are 2 different views available when editing a song.\n\n" +
+          "* [GOLD]Timeline[]: Allows editing of the song's lines and lyrics\n" +
+          "  * [GRAY][[P][]: Set the preview point to the timeline's current position.\n" +
+          "  * Several different modes during this view:\n" +
+          "    * [GREEN]Browsing[]: Can browse through the song. [GRAY][[Space][] to play/pause, [GRAY][[Left][] " +
+          "and [GRAY][[Right][] to skip by 5 seconds.\n" +
+          "    * [GREEN]Selecting[]: Press [GRAY][[Enter][] to enter. Allows selecting of different lines with " +
+          "[GRAY][[Left][] and [GRAY][[Right][].\n" +
+          "    * [GREEN]Editing[]: Press [GRAY][[Enter][] once in selecting line mode. Allows editing of the " +
+          "selected line's text. Press [GRAY][[Enter][] to confirm or [GRAY][[Escape][] to cancel.\n" +
+          "    * [GREEN]Inserting[]: Press [GRAY][[I][] during browsing mode to enter. Hold [GRAY][[Enter][] to add " +
+          "a new line. Release to mark the endpoint.\n" +
+          "    * [GREEN]Moving[]: Can enter when in Selecting mode. Allows manual shifting of the selected line's " +
+          "time points.\n" +
+          "      * [GRAY][[Ctrl][]+[GRAY][[Left][]: Edit the begin point\n" +
+          "      * [GRAY][[Ctrl][]+[GRAY][[Down / Up][]: Edit both the begin and end points, moving the entire line\n" +
+          "      * [GRAY][[Ctrl][]+[GRAY][[Right][]: Edit the end point\n" +
+          "      * Default shift amount is 10ms. Hold [GRAY][[Alt][] to shift by 1ms, or hold [GRAY][[Shift][] to " +
+          "shift by 100ms.\n" +
+          "      * Once you're done, press [GRAY][[Enter][] to save your changes, or [GRAY][[Escape][] to revert " +
+          "back.\n" +
+          "* [GOLD]Metadata[]: Allows editing of the song's metadata, like the title, artist, etc.\n" +
+          "  * Use [GRAY][[Up][] and [GRAY][[Down][] to select the different options.\n" +
+          "  * Press [GRAY][[Enter][] to edit a piece of selected metadata. Press [GRAY][[Enter][] to confirm or " +
+          "[GRAY][[Escape][] to cancel.\n\n" +
+          "[GRAY][[Ctrl][]+[GRAY][[S][]: Save the song. This will update the folder name if need be.",
+
+      UNSAVED_CHANGES_TEXT =
+          "[YELLOW]There are unsaved changes![] Are you sure you want to exit?\n" +
+          "[GRAY][[Esc][] Cancel | [GRAY][[Enter][] Confirm and save | [GRAY][[Ctrl][]+[GRAY][[Enter][] " +
+          "[CORAL]Confirm without saving[]";
 
   private static final int
       META_TITLE = 0,
@@ -102,22 +120,6 @@ public class Editor extends ApplicationAdapter {
     this.gm = gm;
   }
 
-  private void updateLineEditTextBox() {
-    lineEditTb = TextBox.create(
-        gm.getFont(Lyrical.FONT_UI),
-        tep.getText().toString(),
-        new Rectangle(
-            ePad,
-            gm.getHeight() / 2f + ePad,
-            gm.getWidth() - ePad * 2,
-            gm.getHeight() / 2f - ePad * 2),
-        TextAlign.TOP_LEFT.value,
-        Color.WHITE,
-        true,
-        null
-    );
-  }
-
   private void updateLineEditCursor() {
     Vector2 pos = tep.getOnScreenCursorPos(gm, lineEditTb);
     lineEditCursor = new Rectangle(
@@ -129,6 +131,7 @@ public class Editor extends ApplicationAdapter {
   }
 
   private TextBox createTextBoxForLine(Line line) {
+    // maybe make these dynamic text boxes? very rarely do they need to be changed, so it's probably unnecessary
     return TextBox.create(gm.getFont(Lyrical.FONT_UI), line.text, new Rectangle(
         gm.getWidth() / 2f,
         ltbHeight,
@@ -138,10 +141,10 @@ public class Editor extends ApplicationAdapter {
   }
 
   private void updateSongMetaTextBox(int i, boolean forEditing) {
-    String s;
     if (forEditing) {
-      s = tep.getText().toString();
+      ((DynamicTextBox) songMetaTbs[i * 2 + 1]).updateText(tep.getText().toString());
     } else {
+      String s;
       switch (i) {
         case META_TITLE:
           s = song.metadata.title;
@@ -158,18 +161,8 @@ public class Editor extends ApplicationAdapter {
         default:
           s = "(Unknown)";
       }
+      ((DynamicTextBox) songMetaTbs[i * 2 + 1]).updateText(s);
     }
-    songMetaTbs[i * 2 + 1] = TextBox.create(
-        gm.getFont(Lyrical.FONT_UI),
-        s,
-        new Rectangle(
-            ePad,
-            gm.getHeight() * (0.7f - i * 0.1f),
-            gm.getWidth() - (ePad * 2),
-            ltbHeight
-        ),
-        TextAlign.TOP_LEFT.value, Color.WHITE, true, null
-    );
   }
 
   private void updateSongMetaCursorPos() {
@@ -178,8 +171,7 @@ public class Editor extends ApplicationAdapter {
     songMetaCursorPos = new Rectangle(
         tb.textPosition.x + pos.x,
         tb.textPosition.y + tb.glyphLayout.height + pos.y,
-        cWidth,
-        gm.getFont(Lyrical.FONT_UI).getLineHeight()
+        cWidth, gm.getFont(Lyrical.FONT_UI).getLineHeight()
     );
   }
 
@@ -215,8 +207,13 @@ public class Editor extends ApplicationAdapter {
     FileHandle newDir = Reference.Files.SONGS_DIR.child(newFilePath);
     if (!newDir.path().equals(dirPath)) {
       FileHandle oldDir = Gdx.files.local(dirPath);
-      //oldDir.moveTo(Reference.Files.SONGS_DIR); // doesn't work, literally moves the directory itself
       try {
+        Path newDirPath = Paths.get(newDir.path());
+        if (Files.exists(newDirPath)) {
+          newDir = Reference.Files.SONGS_DIR.child(
+              StringUtils.resolveConflictingFilePath(Reference.Files.SONGS_DIR.path(), newFilePath)
+          );
+        }
         Files.move(Paths.get(oldDir.path()), Paths.get(newDir.path()));
       } catch (IOException e) {
         System.err.println("Could not save song at <" + newDir.path() + ">");
@@ -226,7 +223,9 @@ public class Editor extends ApplicationAdapter {
     }
     try (FileWriter writer = new FileWriter(Gdx.files.local(dirPath).child("song.ini").file())) {
       song.save(writer);
+      writer.flush(); // need to flush before calling SongsRepository#refresh(String)
       System.out.println("Song saved at <" + dirPath + ">");
+      Lyrical.getInstance().getSongsRepo().refresh(newFilePath);
       savedTbLife = 90;
       dirty = false;
     } catch (IOException e) {
@@ -245,6 +244,9 @@ public class Editor extends ApplicationAdapter {
     cWidth = gm.getWidth() / 400f;
     ltbHeight = gm.getHeight() / 18f;
     tlHeight = gm.getHeight() / (800f / 3);
+
+    BitmapFont uiFont = gm.getFont(Lyrical.FONT_UI);
+    BitmapFont displayFont = gm.getFont(Lyrical.FONT_DISPLAY);
 
     Object transData = Lyrical.getInstance().getTransitionData();
     newSong = false;
@@ -279,6 +281,17 @@ public class Editor extends ApplicationAdapter {
     }
 
     timelinePos = 0;
+    positionTb = DynamicTextBox.create(
+        uiFont, "",
+        new Rectangle(gm.getWidth() * 0.05f, ePad, gm.getWidth() * 0.9f - ePad, ltbHeight),
+        TextAlign.BOTTOM_LEFT.value, Color.WHITE, false, null
+    );
+    modeTb = DynamicTextBox.create(
+        uiFont, "",
+        new Rectangle(gm.getWidth() * 0.25f, ePad, gm.getWidth() * 0.75f - ePad, ltbHeight),
+        TextAlign.BOTTOM_LEFT.value, Color.WHITE, false, null
+    );
+
     linesTbs = new LinkedList<>();
     song.lines.forEach(line -> linesTbs.add(createTextBoxForLine(line)));
 
@@ -286,8 +299,11 @@ public class Editor extends ApplicationAdapter {
     selectedLine = -1;
 
     tep = new TextEntryProcessor();
-    Gdx.input.setInputProcessor(tep);
-    updateLineEditTextBox();
+    lineEditTb = DynamicTextBox.create(
+        uiFont, tep.getText().toString(),
+        new Rectangle(ePad, gm.getHeight() / 2f + ePad, gm.getWidth() - ePad * 2, gm.getHeight() / 2f - ePad * 2),
+        TextAlign.TOP_LEFT.value, Color.WHITE, true, null
+    );
     updateLineEditCursor();
 
     newInsertLine = null;
@@ -295,102 +311,54 @@ public class Editor extends ApplicationAdapter {
     selectedSongMeta = 0;
     editingSongMeta = false;
     songMetaTbs = new TextBox[8];
-
-    for (int i = 0; i < 4; i++) {
-      String s;
-      switch (i) {
-        case META_TITLE:
-          s = "Title";
-          break;
-        case META_ARTIST:
-          s = "Artist";
-          break;
-        case META_LANGUAGE:
-          s = "Language";
-          break;
-        case META_CHARTER:
-          s = "Charter";
-          break;
-        default:
-          s = "(Unknown)";
-      }
+    String[][] metaTbData = {
+        {"Title", song.metadata.title},
+        {"Artist", song.metadata.artist},
+        {"Language", song.metadata.language},
+        {"Charter", song.metadata.charter}
+    };
+    for (int i = 0; i < metaTbData.length; i++) {
       songMetaTbs[i * 2] = TextBox.create(
-          gm.getFont(Lyrical.FONT_UI),
-          s + ":",
-          new Rectangle(
-              ePad,
-              gm.getHeight() * (0.75f - i * 0.1f),
-              gm.getWidth() - (ePad * 2),
-              ltbHeight
-          ),
-          TextAlign.TOP_LEFT.value,
-          Color.YELLOW,
-          false,
-          null
+          uiFont, metaTbData[i][0] + ":",
+          new Rectangle(ePad, gm.getHeight() * (0.75f - i * 0.1f), gm.getWidth() * (ePad * 2), ltbHeight),
+          TextAlign.LEFT.value, Color.YELLOW, false, null
       );
-      updateSongMetaTextBox(i, false);
+      songMetaTbs[i * 2 + 1] = DynamicTextBox.create(
+          uiFont, metaTbData[i][1],
+          new Rectangle(ePad, gm.getHeight() * (0.7f - i * 0.1f), gm.getWidth() - (ePad * 2), ltbHeight),
+          TextAlign.TOP_LEFT.value, Color.WHITE, true, null
+      );
     }
+
     songMetaCursorPos = new Rectangle();
     lineMoveMode = LineMoveMode.WHOLE;
     lineMoveAmount = 0;
 
     savedTb = TextBox.create(
-        gm.getFont(Lyrical.FONT_DISPLAY),
-        "Saved!",
-        new Rectangle(
-            ePad,
-            ePad,
-            gm.getWidth() - (ePad * 2),
-            gm.getHeight() - (ePad * 2)
-        ),
-        TextAlign.BOTTOM_RIGHT.value,
-        Color.GREEN,
-        false,
-        null
+        displayFont, "Saved",
+        new Rectangle(ePad, ePad, gm.getWidth() - (ePad * 2), gm.getHeight() - (ePad * 2)),
+        TextAlign.BOTTOM_RIGHT.value, Color.GREEN, false, null
     );
     savedTbLife = 0;
     previewSetTb = TextBox.create(
-        gm.getFont(Lyrical.FONT_DISPLAY),
-        "Preview point set!",
-        new Rectangle(
-            ePad,
-            ePad,
-            gm.getWidth() - (ePad * 2),
-            gm.getHeight() - (ePad * 2)
-        ),
-        TextAlign.BOTTOM_RIGHT.value,
-        Color.GREEN,
-        false,
-        null
+        displayFont, "Preview point set",
+        new Rectangle(ePad, ePad, gm.getWidth() - (ePad * 2), gm.getHeight() - (ePad * 2)),
+        TextAlign.BOTTOM_RIGHT.value, Color.GREEN, false, null
     );
     previewSetTbLife = 0;
     markForExit = false;
 
     forceDrawCursorBar = false;
     unsavedTb = TextBox.create(
-        gm.getFont(Lyrical.FONT_UI),
-        "[YELLOW]There are unsaved changes![] Are you sure you want to exit?\n" +
-        "[GRAY][[Esc][] Cancel | [GRAY][[Enter][] Confirm and save | [GRAY][[Ctrl][]+[GRAY][[Enter][] [CORAL]Confirm without saving[]",
+        uiFont, UNSAVED_CHANGES_TEXT,
         new Rectangle(0, 0, gm.getWidth(), gm.getHeight()),
-        TextAlign.CENTER.value,
-        Color.WHITE,
-        false,
-        null
+        TextAlign.CENTER.value, Color.WHITE, false, null
     );
 
     helpTb = TextBox.create(
-        gm.getFont(Lyrical.FONT_UI),
-        HELP_TEXT,
-        new Rectangle(
-            ePad,
-            ePad,
-            gm.getWidth() - (ePad * 2),
-            gm.getHeight() - (ePad * 2)
-        ),
-        TextAlign.TOP_LEFT.value,
-        Color.WHITE,
-        true,
-        null
+        uiFont, HELP_TEXT,
+        new Rectangle(ePad, ePad, gm.getWidth() - (ePad * 2), gm.getHeight() - (ePad * 2)),
+        TextAlign.TOP_LEFT.value, Color.WHITE, true, null
     );
   }
 
@@ -408,7 +376,7 @@ public class Editor extends ApplicationAdapter {
         }
 
         gm.getBatch().begin();
-        gm.drawTextBox(Lyrical.FONT_UI, unsavedTb);
+        gm.drawTextBox(unsavedTb);
         gm.getBatch().end();
       } else {
         Lyrical.getInstance().switchScene(Lyrical.SCENE_SONG_SELECTION);
@@ -431,7 +399,7 @@ public class Editor extends ApplicationAdapter {
       }
       SpriteBatch sb = gm.getBatch();
       sb.begin();
-      gm.drawTextBox(Lyrical.FONT_UI, helpTb);
+      gm.drawTextBox(helpTb);
       sb.end();
     } else if (editingState != EditingState.EDIT_SONG_INFO) {
       if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && editingState == EditingState.BROWSING) {
@@ -487,6 +455,7 @@ public class Editor extends ApplicationAdapter {
           case EDIT_LINE:
             editingState = EditingState.SELECT_LINE;
             tep.setEnteringText(false);
+            InputUtils.revertInputProcessor();
             break;
           case INSERT_LINE:
             editingState = EditingState.BROWSING;
@@ -517,6 +486,7 @@ public class Editor extends ApplicationAdapter {
           case EDIT_LINE:
             editingState = EditingState.SELECT_LINE;
             tep.setEnteringText(false);
+            InputUtils.revertInputProcessor();
             String text = tep.getText().toString().replaceAll("\n", "");
             song.lines.get(selectedLine).text = text;
             linesTbs.set(selectedLine, createTextBoxForLine(song.lines.get(selectedLine)));
@@ -524,6 +494,7 @@ public class Editor extends ApplicationAdapter {
             break;
           case SELECT_LINE:
             editingState = EditingState.EDIT_LINE;
+            InputUtils.setInputProcessor(tep);
             tep.setEnteringText(true);
             tep.getText().setLength(0);
             tep.getText().append(song.lines.get(selectedLine).text);
@@ -622,14 +593,14 @@ public class Editor extends ApplicationAdapter {
 
       if (editingState == EditingState.EDIT_LINE) {
         if (tep.hasTextChanged()) {
-          updateLineEditTextBox();
+          lineEditTb.updateText(tep.getText().toString());
         }
         if (tep.hasCursorPosChanged()) {
           updateLineEditCursor();
           forceDrawCursorBar = true;
         }
         sb.begin();
-        gm.drawTextBox(Lyrical.FONT_UI, lineEditTb);
+        gm.drawTextBox(lineEditTb);
         sb.end();
         if (tep.drawCursorBar() || forceDrawCursorBar) {
           forceDrawCursorBar = false;
@@ -693,7 +664,7 @@ public class Editor extends ApplicationAdapter {
           }
           sr.end();
           sb.begin();
-          gm.drawTextBox(Lyrical.FONT_UI, tb, x - tb.textPosition.x, 0);
+          gm.drawTextBox(tb, x - tb.textPosition.x, 0);
         }
         i++;
       }
@@ -720,18 +691,21 @@ public class Editor extends ApplicationAdapter {
         default:
           editModeStr = "(Unknown)";
       }
-      gm.getFont(Lyrical.FONT_UI).draw(sb, "Mode: [GREEN]" + editModeStr, gm.getWidth() / 4f, ePad + ltbHeight);
-      gm.getFont(Lyrical.FONT_UI).draw(sb, "Position: [YELLOW]" + String.format("%.03f", (song.getTimestamp() / 1000f)) + "[] sec", ePad, ePad + ltbHeight);
+      positionTb.updateText("Position: [YELLOW]" + String.format("%.03f", (song.getTimestamp() / 1000f)) + "[] sec");
+      modeTb.updateText("Mode: [GREEN]" + editModeStr);
+      gm.drawTextBox(positionTb);
+      gm.drawTextBox(modeTb);
       sb.end();
     } else {
       if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
         if (editingSongMeta) {
           editingSongMeta = false;
           updateSongMetaTextBox(selectedSongMeta, false);
+          tep.setEnteringText(false);
+          InputUtils.revertInputProcessor();
         } else {
           editingState = EditingState.BROWSING;
         }
-        tep.setEnteringText(false);
       } else if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
         if (!editingSongMeta && --selectedSongMeta < 0) {
           selectedSongMeta = 3;
@@ -743,6 +717,7 @@ public class Editor extends ApplicationAdapter {
       } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
         if (!editingSongMeta) {
           editingSongMeta = true;
+          InputUtils.setInputProcessor(tep);
           tep.setEnteringText(true);
           tep.getText().setLength(0);
           String s;
@@ -784,6 +759,7 @@ public class Editor extends ApplicationAdapter {
           updateSongMetaTextBox(selectedSongMeta, false);
           editingSongMeta = false;
           tep.setEnteringText(false);
+          InputUtils.revertInputProcessor();
           markDirty();
         }
       } else if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
@@ -804,48 +780,42 @@ public class Editor extends ApplicationAdapter {
 
       SpriteBatch sb = gm.getBatch();
       ShapeRenderer sr = gm.getShapeRenderer();
+      if (tep.isEnteringText()) {
+        sr.setColor(Color.PURPLE);
+      } else {
+        sr.setColor(Color.DARK_GRAY);
+      }
+      sr.begin(ShapeRenderer.ShapeType.Filled);
+      TextBox ssm = songMetaTbs[selectedSongMeta * 2 + 1];
+      sr.rect(
+          ssm.textPosition.x - ePad,
+          ssm.textPosition.y - ePad,
+          ssm.glyphLayout.width + (ePad * 2),
+          ssm.glyphLayout.height + (ePad * 2)
+      );
+      if (tep.isEnteringText() && (tep.drawCursorBar() || forceDrawCursorBar)) {
+        forceDrawCursorBar = false;
+        sr.setColor(Color.WHITE);
+        sr.rect(songMetaCursorPos.x, songMetaCursorPos.y, songMetaCursorPos.width, songMetaCursorPos.height);
+      }
+      sr.end();
+
       sb.begin();
-      /*for (TextBox tb : songMetaTbs) {
-        gm.drawTextBox(Lyrical.FONT_UI, tb);
-      }*/
-      for (int i = 0; i < songMetaTbs.length; i++) {
-        TextBox tb = songMetaTbs[i];
-        if (i / 2 == selectedSongMeta && i % 2 == 1) {
-          sb.end();
-          if (editingSongMeta) {
-            sr.setColor(Color.PURPLE);
-          } else {
-            sr.setColor(Color.DARK_GRAY);
-          }
-          sr.begin(ShapeRenderer.ShapeType.Filled);
-          sr.rect(
-              tb.textPosition.x - ePad,
-              tb.textPosition.y - ePad,
-              tb.glyphLayout.width + (ePad * 2),
-              tb.glyphLayout.height + (ePad * 2)
-          );
-          if (tep.isEnteringText() && (tep.drawCursorBar() || forceDrawCursorBar)) {
-            forceDrawCursorBar = false;
-            sr.setColor(Color.WHITE);
-            sr.rect(songMetaCursorPos.x, songMetaCursorPos.y, songMetaCursorPos.width, songMetaCursorPos.height);
-          }
-          sr.end();
-          sb.begin();
-        }
-        gm.drawTextBox(Lyrical.FONT_UI, tb);
+      for (TextBox tb : songMetaTbs) {
+        gm.drawTextBox(tb);
       }
       sb.end();
     }
 
     if (savedTbLife > 0) {
       gm.getBatch().begin();
-      gm.drawTextBox(Lyrical.FONT_DISPLAY, savedTb);
+      gm.drawTextBox(savedTb);
       gm.getBatch().end();
       savedTbLife--;
     }
     if (previewSetTbLife > 0) {
       gm.getBatch().begin();
-      gm.drawTextBox(Lyrical.FONT_DISPLAY, previewSetTb);
+      gm.drawTextBox(previewSetTb);
       gm.getBatch().end();
       previewSetTbLife--;
     }

@@ -13,7 +13,6 @@ import me.whizvox.lyrical.Reference;
 import me.whizvox.lyrical.graphics.GraphicsManager;
 import me.whizvox.lyrical.graphics.TextAlign;
 import me.whizvox.lyrical.graphics.TextBox;
-import me.whizvox.lyrical.song.Song;
 import me.whizvox.lyrical.util.Pair;
 
 import java.util.ArrayList;
@@ -77,7 +76,7 @@ public class ImportScene extends ApplicationAdapter {
     SpriteBatch sb = gm.getBatch();
     if (imports.isEmpty()) {
       sb.begin();
-      gm.drawTextBox(Lyrical.FONT_UI, noEntriesTb);
+      gm.drawTextBox(noEntriesTb);
       sb.end();
     } else {
       if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
@@ -110,7 +109,7 @@ public class ImportScene extends ApplicationAdapter {
           sr.end();
           sb.begin();
         }
-        gm.drawTextBox(Lyrical.FONT_UI, tb);
+        gm.drawTextBox(tb);
       }
       sb.end();
     }

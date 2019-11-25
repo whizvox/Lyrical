@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import me.whizvox.lyrical.Lyrical;
+import me.whizvox.lyrical.Reference;
 import me.whizvox.lyrical.graphics.GraphicsManager;
 import me.whizvox.lyrical.graphics.TextAlign;
 import me.whizvox.lyrical.graphics.TextBox;
@@ -30,7 +31,7 @@ public class SongSelectionScene extends ApplicationAdapter {
   private ShapeRenderer srenderer;
   private SongsRepository repo;
 
-  private List<Map.Entry<String, Song.Metadata>> orderedRepo;
+  private List<OrderedRepoEntry> orderedRepo;
   private TextBox[] songsTbs;
   private TextBox previewSongTb;
   private int selectedSong;
@@ -58,11 +59,23 @@ public class SongSelectionScene extends ApplicationAdapter {
 
   private void refresh() {
     orderedRepo.clear();
-    orderedRepo.addAll(repo.getCopy().entrySet());
-    orderedRepo.sort(Comparator.comparing(o -> o.getValue().title));
+    {
+      Map<String, Song.Metadata> repoCopy = repo.getCopy();
+      repoCopy.forEach((dir, metadata) -> {
+        OrderedRepoEntry entry = new OrderedRepoEntry();
+        entry.dir = dir;
+        entry.metadata = metadata;
+        entry.zeroLength = metadata.length == 0;
+        entry.noAudio = !Gdx.files.local(dir).child(metadata.filePath).exists();
+        orderedRepo.add(entry);
+      });
+    }
+    // sort by title, then artist if there's a conflict
+    orderedRepo.sort(Comparator.comparing(e -> e.metadata.title + e.metadata.artist));
     songsTbs = new TextBox[orderedRepo.size()];
     for (int i = 0; i < songsTbs.length; i++) {
-      Song.Metadata c = orderedRepo.get(i).getValue();
+      OrderedRepoEntry e = orderedRepo.get(i);
+      Song.Metadata c = e.metadata;
       songsTbs[i] = TextBox.create(
           gm.getFont(Lyrical.FONT_DISPLAY),
           c.title,
@@ -73,7 +86,7 @@ public class SongSelectionScene extends ApplicationAdapter {
               textboxHeight
           ),
           TextAlign.LEFT.value,
-          c.length == 0 ? Color.RED : Color.WHITE,
+          (e.noAudio || e.zeroLength) ? Color.SCARLET : Color.WHITE,
           false,
           "..."
       );
@@ -85,13 +98,20 @@ public class SongSelectionScene extends ApplicationAdapter {
     if (songsTbs.length == 0) {
       previewSongTb = null;
     } else {
-      Song.Metadata c = orderedRepo.get(selectedSong).getValue();
+      OrderedRepoEntry e = orderedRepo.get(selectedSong);
+      Song.Metadata m = e.metadata;
       String data =
-          "Title: " + c.title + '\n' +
-          "Artist: " + c.artist + '\n' +
-          "Language: " + c.language + '\n' +
-          (c.length == 0 ? "[RED]" : "[WHITE]") + "Length: " + (c.length / 60) + ':' + String.format("%02d", c.length % 60) + "[]" + '\n' +
-          "Charter: " + c.charter;
+          "Title: " + m.title + '\n' +
+          "Artist: " + m.artist + '\n' +
+          "Language: " + m.language + '\n' +
+          (e.zeroLength ? "[SCARLET]" : "[WHITE]") + "Length: " + (m.length / 60) + ':' + String.format("%02d", m.length % 60) + "[]" + '\n' +
+          "Charter: " + m.charter + "\n";
+      if (e.noAudio) {
+        data += "\n[SCARLET]- No audio[]";
+      }
+      if (e.zeroLength) {
+        data += "\n[SCARLET]- No lines[]";
+      }
       previewSongTb = TextBox.create(
           gm.getFont(Lyrical.FONT_UI),
           data,
@@ -137,20 +157,23 @@ public class SongSelectionScene extends ApplicationAdapter {
 
     if (orderedRepo.isEmpty()) {
       batch.begin();
-      gm.drawTextBox(Lyrical.FONT_UI, noSongsTb);
+      gm.drawTextBox(noSongsTb);
       batch.end();
     } else {
       if (playPreviewMusic < 0 && previewMusic == null) {
-        Song.Metadata c = orderedRepo.get(selectedSong).getValue();
-        FileHandle songFilePath = Gdx.files.internal(orderedRepo.get(selectedSong).getKey()).child(c.filePath);
-        try {
-          previewMusic = Gdx.audio.newMusic(songFilePath);
-          previewMusic.play();
-          // TODO: Skipping in preview music causes a lot of lag
-          //previewMusic.setPosition((float) c.previewTimestamp / 1000);
-        } catch (Exception e) {
-          System.err.println("Could not load and/or play the following file <" + songFilePath.path() + ">");
-          e.printStackTrace();
+        Song.Metadata c = orderedRepo.get(selectedSong).metadata;
+        FileHandle songFilePath = Gdx.files.internal(orderedRepo.get(selectedSong).dir).child(c.filePath);
+        if (songFilePath.exists() && !songFilePath.isDirectory()) {
+          try {
+            previewMusic = Gdx.audio.newMusic(songFilePath);
+            previewMusic.play();
+            previewMusic.setVolume(Lyrical.getInstance().getSettings().getInt(Reference.Settings.MUSIC_VOLUME, Reference.Defaults.MUSIC_VOLUME) / 100f);
+            // TODO Skipping in preview music causes a lot of lag. Maybe create a bunch of small .wavs for previews?
+            //previewMusic.setPosition((float) c.previewTimestamp / 1000);
+          } catch (Exception e) {
+            System.err.println("Could not load and/or play the following file <" + songFilePath.path() + ">");
+            e.printStackTrace();
+          }
         }
       } else {
         playPreviewMusic--;
@@ -167,12 +190,10 @@ public class SongSelectionScene extends ApplicationAdapter {
         }
         updatePreviewTextBox();
       } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-        if (orderedRepo.get(selectedSong).getValue().length > 0) {
-          Lyrical.getInstance().switchScene(Lyrical.SCENE_PLAYING, orderedRepo.get(selectedSong).getKey());
-          return;
-        }
+        Lyrical.getInstance().switchScene(Lyrical.SCENE_PLAYING, orderedRepo.get(selectedSong).dir);
+        return;
       } else if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
-        Lyrical.getInstance().switchScene(Lyrical.SCENE_EDITOR, new Pair<>(true, orderedRepo.get(selectedSong).getKey()));
+        Lyrical.getInstance().switchScene(Lyrical.SCENE_EDITOR, new Pair<>(true, orderedRepo.get(selectedSong).dir));
         return;
       }
 
@@ -194,11 +215,11 @@ public class SongSelectionScene extends ApplicationAdapter {
             srenderer.end();
             batch.begin();
           }
-          gm.drawTextBox(Lyrical.FONT_DISPLAY, tb, 0, yoff);
+          gm.drawTextBox(tb, 0, yoff);
         }
       }
       if (previewSongTb != null) {
-        gm.drawTextBox(Lyrical.FONT_UI, previewSongTb);
+        gm.drawTextBox(previewSongTb);
       }
       batch.end();
     }
@@ -211,6 +232,21 @@ public class SongSelectionScene extends ApplicationAdapter {
         previewMusic.stop();
       }
       previewMusic.dispose();
+    }
+  }
+
+  private static class OrderedRepoEntry {
+    String dir;
+    Song.Metadata metadata;
+    boolean zeroLength;
+    boolean noAudio;
+    OrderedRepoEntry(String dir, Song.Metadata metadata, boolean zeroLength, boolean noAudio) {
+      this.dir = dir;
+      this.metadata = metadata;
+      this.zeroLength = zeroLength;
+      this.noAudio = noAudio;
+    }
+    OrderedRepoEntry() {
     }
   }
 

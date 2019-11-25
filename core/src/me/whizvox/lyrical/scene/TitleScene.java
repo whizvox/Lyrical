@@ -109,9 +109,9 @@ public class TitleScene extends ApplicationAdapter {
     sb.begin();
     sb.draw(logoTex, logoBounds.x, logoBounds.y, logoBounds.width, logoBounds.height);
     for (TextBox tb : menuTbs) {
-      gm.drawTextBox(Lyrical.FONT_DISPLAY, tb);
+      gm.drawTextBox(tb);
     }
-    gm.drawTextBox(Lyrical.FONT_UI, versionTb);
+    gm.drawTextBox(versionTb);
     sb.end();
   }
 

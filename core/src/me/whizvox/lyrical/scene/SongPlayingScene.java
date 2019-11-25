@@ -43,17 +43,17 @@ public class SongPlayingScene extends ApplicationAdapter {
   public void create() {
     ePad = gm.getWidth() / 120f;
     lSpace = gm.getWidth() / 32f;
-    Path songPath = Paths.get((String)Lyrical.getInstance().getTransitionData(), "song.ini");
+    Path songPath = Paths.get((String) Lyrical.getInstance().getTransitionData(), "song.ini");
 
-    finishedTb = TextBox.create(gm.getFont(Lyrical.FONT_UI), "Playback has finished. Press [GRAY][[ESC][] to go back.", new Rectangle(0, 10, gm.getWidth(), gm.getHeight() - 20), TextAlign.BOTTOM_CENTER.value, Color.YELLOW, false, null);
+    finishedTb = TextBox.create(
+        gm.getFont(Lyrical.FONT_DISPLAY),
+        "Playback has finished. Press [GRAY][[ESC][] to go back.",
+        new Rectangle(ePad, ePad, gm.getWidth() - (ePad * 2), gm.getHeight() - (ePad * 2)),
+        TextAlign.BOTTOM_CENTER.value, Color.YELLOW, false, null
+    );
 
     try {
       song = Song.readSong(songPath);
-      if (song.lines.isEmpty()) {
-        Lyrical.getInstance().switchScene(Lyrical.SCENE_SONG_SELECTION);
-        song = null;
-        return;
-      }
       lineTbs = new TextBox[song.lines.size()];
       for (int i = 0; i < lineTbs.length; i++) {
         lineTbs[i] = TextBox.create(gm.getFont(Lyrical.FONT_DISPLAY), song.lines.get(i).text, new Rectangle(
@@ -102,64 +102,63 @@ public class SongPlayingScene extends ApplicationAdapter {
         gm.getBatch().draw(background, bgRegion.x, bgRegion.y, bgRegion.width, bgRegion.height);
         gm.getBatch().end();
       }
-      if (!song.hasFinished()) {
+      if (!song.lines.isEmpty() && !song.hasFinished()) {
         song.tick();
       } else {
         gm.getBatch().begin();
-        gm.drawTextBox(Lyrical.FONT_UI, finishedTb);
+        gm.drawTextBox(finishedTb);
         gm.getBatch().end();
       }
-      Line line = song.getCurrentLine();
-      if (line != null) {
-        final int I = song.getCurrentLineIndex();
-        if (lastIndex != -1 && I != lastIndex) {
-          nextLineProgress = 1.0f;
-          nextLineDelta = 1000f / (song.lines.get(I).begin - song.lines.get(lastIndex).end) / 60f;
-          if (nextLineDelta < nextLineDeltaDefault) {
-            nextLineDelta = nextLineDeltaDefault;
+      if (!song.lines.isEmpty()) {
+        Line line = song.getCurrentLine();
+        if (line != null) {
+          final int I = song.getCurrentLineIndex();
+          if (lastIndex != -1 && I != lastIndex) {
+            nextLineProgress = 1.0f;
+            nextLineDelta = 1000f / (song.lines.get(I).begin - song.lines.get(lastIndex).end) / 60f;
+            if (nextLineDelta < nextLineDeltaDefault) {
+              nextLineDelta = nextLineDeltaDefault;
+            }
           }
-        }
-        TextBox tb = lineTbs[I];
-        ShapeRenderer sr = gm.getShapeRenderer();
-        Gdx.gl.glEnable(Gdx.gl.GL_BLEND);
-        Gdx.gl.glBlendFunc(Gdx.gl.GL_SRC_ALPHA, Gdx.gl.GL_ONE_MINUS_SRC_ALPHA);
-        sr.begin(ShapeRenderer.ShapeType.Filled);
-        sr.setColor(0.2f, 0.2f, 0.2f, 0.5f);
-        // TODO: Should have the yoffset be another constant?
-        sr.rect(ePad, tb.textPosition.y + lSpace - ePad, gm.getWidth() - (ePad * 2), tb.glyphLayout.height + (ePad * 2));
-        sr.end();
-        if (song.getProgress() != 0) {
+          TextBox tb = lineTbs[I];
+          ShapeRenderer sr = gm.getShapeRenderer();
+          Gdx.gl.glEnable(Gdx.gl.GL_BLEND);
+          Gdx.gl.glBlendFunc(Gdx.gl.GL_SRC_ALPHA, Gdx.gl.GL_ONE_MINUS_SRC_ALPHA);
           sr.begin(ShapeRenderer.ShapeType.Filled);
-          sr.setColor(Color.PURPLE);
-          sr.rect(tb.textPosition.x - ePad, tb.textPosition.y + lSpace - ePad, tb.glyphLayout.width * song.getProgress() + (ePad * 2), tb.glyphLayout.height + (ePad * 2));
+          sr.setColor(0.2f, 0.2f, 0.2f, 0.5f);
+          // TODO: Should have the yoffset be another constant?
+          sr.rect(ePad, tb.textPosition.y + lSpace - ePad, gm.getWidth() - (ePad * 2), tb.glyphLayout.height + (ePad * 2));
           sr.end();
-        }
-        gm.getBatch().begin();
-        if (nextLineProgress <= 0) {
-          for (int i = -1; i <= 2; i++) {
-            if (I + i >= 0 && I + i < song.lines.size()) {
-              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace);
-            }
+          if (song.getProgress() != 0) {
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            sr.setColor(Color.PURPLE);
+            sr.rect(tb.textPosition.x - ePad, tb.textPosition.y + lSpace - ePad, tb.glyphLayout.width * song.getProgress() + (ePad * 2), tb.glyphLayout.height + (ePad * 2));
+            sr.end();
           }
-        } else {
-          for (int i = -2; i <= 2; i++) {
-            float p = nextLineProgress;
-            if (I + i >= 0 && I + i < song.lines.size()) {
-              if (i == -2) {
-                p = -5 * (1 - nextLineProgress);
-              } else if (i == 2) {
-                p = 5 * nextLineProgress;
-              }/* else if (i == 0 && line.begin < song.getTimestamp()) {
-                nextLineProgress = 0;
-              }*/
-              gm.drawTextBox(Lyrical.FONT_DISPLAY, lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace - p * (lSpace * 2));
+          gm.getBatch().begin();
+          if (nextLineProgress <= 0) {
+            for (int i = -1; i <= 2; i++) {
+              if (I + i >= 0 && I + i < song.lines.size()) {
+                gm.drawTextBox(lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace);
+              }
             }
+          } else {
+            for (int i = -2; i <= 2; i++) {
+              float p = nextLineProgress;
+              if (I + i >= 0 && I + i < song.lines.size()) {
+                if (i == -2) {
+                  p = -5 * (1 - nextLineProgress);
+                } else if (i == 2) {
+                  p = 5 * nextLineProgress;
+                }
+                gm.drawTextBox(lineTbs[I + i], 0, -i * (lSpace * 2) + lSpace - p * (lSpace * 2));
+              }
+            }
+            nextLineProgress -= nextLineDelta;
           }
-          //nextLineProgress -= 0.05f;
-          nextLineProgress -= nextLineDelta;
+          gm.getBatch().end();
+          lastIndex = I;
         }
-        gm.getBatch().end();
-        lastIndex = I;
       }
     }
   }

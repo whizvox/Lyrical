@@ -6,7 +6,7 @@ import com.badlogic.gdx.files.FileHandle;
 public class Reference {
 
   public static final String
-      VERSION = "0.2-pre1";
+      VERSION = "0.2-pre2";
 
   public static final class Files {
     public static final FileHandle
@@ -21,18 +21,18 @@ public class Reference {
         RESOLUTION_WIDTH = "ResolutionWidth",
         RESOLUTION_HEIGHT = "ResolutionHeight",
         FULLSCREEN = "Fullscreen",
-        WIDTH = "SizeWidth",
-        HEIGHT = "SizeHeight",
-        POS_X = "PosX",
-        POS_Y = "PosY";
+        WINDOW_WIDTH = "WindowWidth",
+        WINDOW_HEIGHT = "WindowHeight",
+        MUSIC_VOLUME = "MusicVolume";
   }
 
   public static final class Defaults {
     public static final int
         RESOLUTION_WIDTH = 800,
         RESOLUTION_HEIGHT = 450,
-        SIZE_WIDTH = RESOLUTION_WIDTH,
-        SIZE_HEIGHT = RESOLUTION_HEIGHT;
+        WINDOW_WIDTH = RESOLUTION_WIDTH,
+        WINDOW_HEIGHT = RESOLUTION_HEIGHT,
+        MUSIC_VOLUME = 50;
     public static final boolean
         FULLSCREEN = false;
   }

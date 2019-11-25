@@ -12,18 +12,19 @@ task run(dependsOn: classes, type: JavaExec) {
   main = project.mainClassName
   classpath = sourceSets.main.runtimeClasspath
   standardInput = System.in
-  /*workingDir = project.assetsDir*/
-  //delete RUNDIR
   mkdir RUNDIR
   copy {
     from project.assetsDir
     into RUNDIR
+    exclude {
+      "*.xcf"
+    }
   }
-  //workingDir = project.assetsDir
   workingDir = RUNDIR
   ignoreExitValue = true
 }
-clean {
+
+task cleanRundir(type: Delete) {
   delete RUNDIR
 }
 

@@ -2,6 +2,7 @@ package me.whizvox.lyrical.util;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 
 public class InputUtils {
 
@@ -31,6 +32,21 @@ public class InputUtils {
 
   public static boolean isKeyPressed(int key, int meta) {
     return Gdx.input.isKeyJustPressed(key) && isMetaKeyPressed(meta);
+  }
+
+  private static InputProcessor prevInputProcessor = null;
+
+  public static void setInputProcessor(InputProcessor inputProcessor) {
+    prevInputProcessor = Gdx.input.getInputProcessor();
+    Gdx.input.setInputProcessor(inputProcessor);
+  }
+
+  public static void revertInputProcessor() {
+    if (prevInputProcessor == null) {
+      System.err.println("Could not revert to previous input processor as none exists");
+    } else {
+      Gdx.input.setInputProcessor(prevInputProcessor);
+    }
   }
 
 }

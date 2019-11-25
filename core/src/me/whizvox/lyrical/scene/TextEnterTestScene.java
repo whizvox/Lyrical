@@ -55,7 +55,7 @@ public class TextEnterTestScene extends ApplicationAdapter {
     }
 
     gm.getBatch().begin();
-    gm.drawTextBox(Lyrical.FONT_UI, tb);
+    gm.drawTextBox(tb);
     gm.getBatch().end();
 
     if (ip.drawCursorBar()) {
